@@ -861,7 +861,7 @@ var tokens []Token
 var currTokenId int = 0
 
 func tokenErr(msg string) {
-	fmt.Printf("error in line %d: %s\n", tokens[currTokenId].line, msg)
+	fmt.Printf("error in line %d: %s, found %#v\n", tokens[currTokenId].line, msg, tokens[currTokenId].value)
 	os.Exit(1)
 }
 
@@ -875,7 +875,7 @@ func consume(code TokenType) bool {
 
 func unit() bool {
 	for {
-		if declStruct() || declFunc() || declVar() {
+		if declStruct() || declFunc() || declVar()  {
 
 		} else {
 			break
@@ -888,6 +888,9 @@ func unit() bool {
 	return false
 }
 func declStruct() bool {
+
+	startId := currTokenId
+
 	if consume(Struct) {
 		if consume(Id) {
 			if consume(Lacc) {
@@ -902,21 +905,23 @@ func declStruct() bool {
 					if consume(Semicolon) {
 						return true
 					} else {
-						tokenErr("expected `;`")
+						tokenErr("expected `;` at the end of the struct")
 					}
 				} else {
-					tokenErr("expected `}`")
+					tokenErr("expected `}` at the end of the struct")
 				}
 			} else {
-				tokenErr("expected `{`")
+				tokenErr("expected `{` after struct keyword")
 			}
 		} else {
 			tokenErr("expected identifier")
 		}
 	}
+	currTokenId = startId
 	return false
 }
 func declVar() bool {
+	startId := currTokenId
 	if typeBase() {
 		if consume(Id) {
 			arrayDecl()
@@ -940,7 +945,7 @@ func declVar() bool {
 			tokenErr("expected identifier")
 		}
 	}
-
+	currTokenId = startId
 	return false
 }
 func typeBase() bool {
@@ -954,7 +959,7 @@ func typeBase() bool {
 		if consume(Id) {
 			return true
 		} else {
-			tokenErr("expected identifier")
+			tokenErr("expected identifier after struct")
 		}
 	} else {
 		currTokenId = startId
@@ -980,17 +985,83 @@ func typeName() bool {
 	}
 	return false
 }
+
 func declFunc() bool {
+	startId := currTokenId
+	if func() bool {
+		if typeBase() {
+			consume(Mul)
+			return true
+		} else {
+			return false
+		}
+	}() || consume(Void) {
+		if consume(Id) {
+			if consume(Lpar) {
+				if funcArg() {
+					for {
+						if consume(Comma) {
+							if funcArg() {
+
+							} else {
+								tokenErr("expected argument after comma")
+							}
+						} else {
+							break
+						}
+					}
+				}
+				if consume(Rpar) {
+					if stmCompound() {
+						return true
+					} else {
+						tokenErr("expected statement after function declaration")
+					}
+				} else {
+					tokenErr("expected `)` at the end of the argument list")
+				}
+			} else {
+				// daca nu gaseste (, nu inseamna ca e eroare
+				currTokenId = startId
+				return false
+			}
+		} else {
+			tokenErr("expected identifier")
+		}
+	}
+	currTokenId = startId
 	return false
 }
 func funcArg() bool {
-	return true
+	if typeBase() {
+		if consume(Id) {
+			arrayDecl()
+			return true
+		} else {
+			tokenErr("expected identifier")
+		}
+	}
+	return false
 }
 func stm() bool {
-	return true
+	return false
 }
 func stmCompound() bool {
-	return true
+	if consume(Lacc) {
+		for {
+			if declVar() || stm() {
+
+			} else {
+				break
+			}
+		}
+		if consume(Racc) {
+			return true
+		} else {
+			tokenErr("expected `}` at the end of the statement")
+		}
+	}
+	return false
 }
 
 func expr() bool {
