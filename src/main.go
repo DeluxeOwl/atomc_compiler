@@ -861,7 +861,11 @@ var tokens []Token
 var currTokenId int = 0
 
 func tokenErr(msg string) {
-	fmt.Printf("error in line %d: %s, found %#v\n", tokens[currTokenId].line, msg, tokens[currTokenId].value)
+	if tokens[currTokenId].value != nil {
+		fmt.Printf("error in line %d: %s, found %#v\n", tokens[currTokenId].line, msg, tokens[currTokenId].value)
+	} else {
+		fmt.Printf("error in line %d: %s\n", tokens[currTokenId].line, msg)
+	}
 	os.Exit(1)
 }
 
@@ -875,7 +879,7 @@ func consume(code TokenType) bool {
 
 func unit() bool {
 	for {
-		if declStruct() || declFunc() || declVar()  {
+		if declStruct() || declFunc() || declVar() {
 
 		} else {
 			break
@@ -1044,9 +1048,115 @@ func funcArg() bool {
 	return false
 }
 func stm() bool {
+
+	startId := currTokenId
+
+	if stmCompound() {
+		return true
+	}
+	if consume(If) {
+		if consume(Lpar) {
+			if expr() {
+				if consume(Rpar) {
+					if stm() {
+						if consume(Else) {
+							if stm() {
+
+							} else {
+								tokenErr("expected statement inside else")
+							}
+						}
+						return true
+					} else {
+						tokenErr("expected statement inside if")
+					}
+				} else {
+					tokenErr("expected `)` at the end of the if statement")
+				}
+			} else {
+				tokenErr("expected expression inside if")
+			}
+		} else {
+			tokenErr("expected `(` at the beginning of the if statement")
+		}
+	}
+	if consume(While) {
+		if consume(Lpar) {
+			if expr() {
+				if consume(Rpar) {
+					if stm() {
+						return true
+					} else {
+						tokenErr("expected statement inside while")
+					}
+				} else {
+					tokenErr("expected `)` at the end of the while statement")
+				}
+			} else {
+				tokenErr("expected expression inside while")
+			}
+		} else {
+			tokenErr("expected `(` at the beginning of the while statement")
+		}
+	}
+	if consume(For) {
+		if consume(Lpar) {
+			expr()
+			if consume(Semicolon) {
+				expr()
+				if consume(Semicolon) {
+					expr()
+					if consume(Rpar) {
+						if stm() {
+							return true
+						} else {
+							tokenErr("expected statement inside for")
+						}
+					} else {
+						tokenErr("expected `)` at the end of the for statement")
+					}
+				} else {
+					tokenErr("expected `;` after the second expression")
+				}
+			} else {
+				tokenErr("expected `;` inside after the first expression")
+			}
+		} else {
+			tokenErr("expected `(` at the beginning of the for statement")
+		}
+	}
+	if consume(Break) {
+		if consume(Semicolon) {
+			return true
+		} else {
+			tokenErr("expected `;` after break")
+		}
+	}
+	if consume(Return) {
+		expr()
+		if consume(Semicolon) {
+			return true
+		} else {
+			tokenErr("expected `;` after return")
+		}
+	}
+	if func() bool {
+		expr()
+		if consume(Semicolon) {
+			return true
+		} else {
+			tokenErr("expected `;` after expression")
+		}
+		return false
+	}() == true {
+		return true
+	}
+
+	currTokenId = startId
 	return false
 }
 func stmCompound() bool {
+	startId := currTokenId
 	if consume(Lacc) {
 		for {
 			if declVar() || stm() {
@@ -1061,44 +1171,259 @@ func stmCompound() bool {
 			tokenErr("expected `}` at the end of the statement")
 		}
 	}
+	currTokenId = startId
 	return false
 }
 
 func expr() bool {
-	return true
+	return exprAssign()
 }
 func exprAssign() bool {
-	return true
+	if exprUnary() {
+		if consume(Assign) {
+			if exprAssign() {
+				return true
+			} else {
+				tokenErr("expected right operand")
+			}
+		} else {
+			tokenErr("expected `=`")
+		}
+	}
+	if exprOr() {
+		return true
+	}
+	return false
 }
 func exprOr() bool {
-	return true
+	startId := currTokenId
+	if exprOr() {
+		if consume(Or) {
+			if exprAnd() {
+				return true
+			} else {
+				tokenErr("expected expression on the right side of `or`")
+			}
+		} else {
+			tokenErr("expected `or`")
+		}
+	}
+	if exprAnd() {
+		return true
+	}
+	currTokenId = startId
+	return false
 }
 func exprAnd() bool {
-	return true
+	startId := currTokenId
+	if exprAnd() {
+		if consume(And) {
+			if exprEq() {
+				return true
+			} else {
+				tokenErr("expected expression on the right side of `and`")
+			}
+		} else {
+			tokenErr("expected `and`")
+		}
+	}
+	if exprEq() {
+		return true
+	}
+	currTokenId = startId
+	return false
 }
 func exprEq() bool {
-	return true
+	startId := currTokenId
+	if exprEq() {
+		if consume(Equal) || consume(NotEq) {
+			if exprRel() {
+				return true
+			} else {
+				tokenErr("expected expression on the right side of equality")
+			}
+		} else {
+			tokenErr("expected `=` or `!=`")
+		}
+	}
+	if exprRel() {
+		return true
+	}
+	currTokenId = startId
+	return false
 }
 func exprRel() bool {
-	return true
+	startId := currTokenId
+	if exprRel() {
+		if consume(Less) || consume(LessEq) || consume(Greater) || consume(GreaterEq) {
+			if exprAdd() {
+				return true
+			} else {
+				tokenErr("expected expression on the right side of comparison")
+			}
+		} else {
+			tokenErr("expected comparison")
+		}
+	}
+	if exprAdd() {
+		return true
+	}
+	currTokenId = startId
+	return false
 }
 func exprAdd() bool {
-	return true
+	startId := currTokenId
+	if exprAdd() {
+		if consume(Add) || consume(Sub) {
+			if exprMul() {
+				return true
+			} else {
+				tokenErr("expected multiplication expression")
+			}
+		} else {
+			tokenErr("expected `+` or `-`")
+		}
+	}
+	if exprMul() {
+		return true
+	}
+	currTokenId = startId
+	return false
 }
 func exprMul() bool {
-	return true
+	startId := currTokenId
+	if exprMul() {
+		if consume(Mul) || consume(Div) {
+			if exprCast() {
+				return true
+			} else {
+				tokenErr("expected casting")
+			}
+		} else {
+			tokenErr("expected `*` or `/`")
+		}
+	}
+	if exprCast() {
+		return true
+	}
+	currTokenId = startId
+	return false
 }
 func exprCast() bool {
-	return true
+	startId := currTokenId
+	if consume(Lpar) {
+		if typeName() {
+			if consume(Rpar) {
+				if exprCast() {
+					return true
+				} else {
+					tokenErr("expected expression after casting")
+				}
+			} else {
+				tokenErr("expected `)` for casting")
+			}
+		} else {
+			tokenErr("expected type name")
+		}
+	}
+	if exprUnary() {
+		return true
+	}
+	currTokenId = startId
+	return false
 }
 func exprUnary() bool {
-	return true
+	startId := currTokenId
+
+	if consume(Sub) || consume(Not) {
+		if exprUnary() {
+			return true
+		} else {
+			tokenErr("expected unary expression")
+		}
+	}
+	if exprPostfix() {
+		return true
+	}
+
+	currTokenId = startId
+	return false
 }
 func exprPostfix() bool {
-	return true
+	startId := currTokenId
+
+	if exprPostfix() {
+		if consume(Lbracket) {
+			if expr() {
+				if consume(Rbracket) {
+					return true
+				} else {
+					tokenErr("expected `]` after expression")
+				}
+			} else {
+				tokenErr("expected expression after `[`")
+			}
+		} else {
+			tokenErr("expected `[` after expression")
+		}
+	}
+	if exprPostfix() {
+		if consume(Dot) {
+			if consume(Id) {
+				return true
+			} else {
+				tokenErr("expected identifier after `.`")
+			}
+		} else {
+			tokenErr("expected `.` after expression")
+		}
+	}
+	if exprPrimary() {
+		return true
+	}
+
+	currTokenId = startId
+	return false
 }
 func exprPrimary() bool {
-	return true
+	if consume(Id) {
+		if consume(Lpar) {
+			if expr() {
+				for {
+					if consume(Comma) {
+						if expr() {
+
+						} else {
+							tokenErr("expected expression after `,`")
+						}
+					} else {
+						break
+					}
+				}
+			}
+			if consume(Rpar) {
+				return true
+			} else {
+				tokenErr("expected `)` after expression")
+			}
+		}
+		return true
+	}
+	if consume(CtInt) || consume(CtReal) || consume(CtChar) || consume(CtString) {
+		return true
+	}
+	if consume(Lpar) {
+		if expr() {
+			if consume(Rpar) {
+				return true
+			} else {
+				tokenErr("expected `(` after expression")
+			}
+		} else {
+			tokenErr("expected expression after `(`")
+		}
+	}
+	return false
 }
 
 func ansin() {
