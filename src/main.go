@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	ansin "atomc/src/analizator/sintactic"
+	// ansin "atomc/src/analizator/sintactic"
 )
 
 type TokenType int
@@ -106,6 +106,7 @@ type Token struct {
 	line      uint
 }
 
+// ---------------------- ANLEX --------------------------------------
 func getNextToken(text *string, curPos *uint, currLine *uint) Token {
 
 	var tokenStr string = ""
@@ -853,6 +854,187 @@ func printTokens(tokens []Token) {
 	}
 }
 
+// ---------------------- ANSIN --------------------------------------
+
+var tokens []Token
+
+var currTokenId int = 0
+
+func tokenErr(msg string) {
+	fmt.Printf("error in line %d: %s\n", tokens[currTokenId].line, msg)
+	os.Exit(1)
+}
+
+func consume(code TokenType) bool {
+	if tokens[currTokenId].tokenType == code {
+		currTokenId += 1
+		return true
+	}
+	return false
+}
+
+func unit() bool {
+	for {
+		if declStruct() || declFunc() || declVar() {
+
+		} else {
+			break
+		}
+	}
+	if consume(End) {
+		return true
+	}
+	return false
+}
+func declStruct() bool {
+	if consume(Struct) {
+		if consume(Id) {
+			if consume(Lacc) {
+				for {
+					if declVar() {
+
+					} else {
+						break
+					}
+				}
+				if consume(Racc) {
+					if consume(Semicolon) {
+						return true
+					} else {
+						tokenErr("expected `;`")
+					}
+				} else {
+					tokenErr("expected `}`")
+				}
+			} else {
+				tokenErr("expected `{`")
+			}
+		} else {
+			tokenErr("expected identifier")
+		}
+	}
+	return false
+}
+func declVar() bool {
+	if typeBase() {
+		if consume(Id) {
+			arrayDecl()
+			for {
+				if consume(Comma) {
+					if consume(Id) {
+						arrayDecl()
+					} else {
+						tokenErr("expected identifier")
+					}
+				} else {
+					break
+				}
+			}
+			if consume(Semicolon) {
+				return true
+			} else {
+				tokenErr("expected `;`")
+			}
+		} else {
+			tokenErr("expected identifier")
+		}
+	}
+
+	return false
+}
+func typeBase() bool {
+
+	startId := currTokenId
+
+	if consume(Int) || consume(Double) || consume(Char) {
+		return true
+	}
+	if consume(Struct) {
+		if consume(Id) {
+			return true
+		} else {
+			tokenErr("expected identifier")
+		}
+	} else {
+		currTokenId = startId
+	}
+
+	return false
+}
+func arrayDecl() bool {
+	if consume(Lbracket) {
+		expr()
+		if consume(Rbracket) {
+			return true
+		} else {
+			tokenErr("expected `]`")
+		}
+	}
+	return false
+}
+func typeName() bool {
+	if typeBase() {
+		arrayDecl()
+		return true
+	}
+	return false
+}
+func declFunc() bool {
+	return true
+}
+func funcArg() bool {
+	return true
+}
+func stm() bool {
+	return true
+}
+func stmCompound() bool {
+	return true
+}
+
+func expr() bool {
+	return true
+}
+func exprAssign() bool {
+	return true
+}
+func exprOr() bool {
+	return true
+}
+func exprAnd() bool {
+	return true
+}
+func exprEq() bool {
+	return true
+}
+func exprRel() bool {
+	return true
+}
+func exprAdd() bool {
+	return true
+}
+func exprMul() bool {
+	return true
+}
+func exprCast() bool {
+	return true
+}
+func exprUnary() bool {
+	return true
+}
+func exprPostfix() bool {
+	return true
+}
+func exprPrimary() bool {
+	return true
+}
+
+func ansin() {
+	if unit() {
+	} else {
+		tokenErr("top level error")
+	}
+}
 
 func main() {
 
@@ -868,8 +1050,7 @@ func main() {
 
 	text := string(content)
 
-	tokens := getTokens(&text)
+	tokens = getTokens(&text)
 	printTokens(tokens)
 
-	ansin.PrintH()
 }
