@@ -882,6 +882,7 @@ func unit() bool {
 		}
 	}
 	if consume(End) {
+		fmt.Println("Consumed end")
 		return true
 	}
 	return false
@@ -980,7 +981,7 @@ func typeName() bool {
 	return false
 }
 func declFunc() bool {
-	return true
+	return false
 }
 func funcArg() bool {
 	return true
@@ -1052,5 +1053,5 @@ func main() {
 
 	tokens = getTokens(&text)
 	printTokens(tokens)
-
+	ansin()
 }
