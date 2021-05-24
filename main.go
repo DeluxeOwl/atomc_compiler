@@ -862,9 +862,9 @@ var currTokenId int = 0
 
 func tokenErr(msg string) {
 	if tokens[currTokenId].value != nil {
-		fmt.Printf("error in line %d: %s, found %#v\n", tokens[currTokenId].line, msg, tokens[currTokenId].value)
+		fmt.Printf("error in line %d at token %s: %s, found %#v\n", tokens[currTokenId].line,constLookup[tokens[currTokenId].tokenType], msg, tokens[currTokenId].value)
 	} else {
-		fmt.Printf("error in line %d: %s\n", tokens[currTokenId].line, msg)
+		fmt.Printf("error in line %d at token %s: %s\n", tokens[currTokenId].line,constLookup[tokens[currTokenId].tokenType], msg)
 	}
 	os.Exit(1)
 }
@@ -878,22 +878,39 @@ func consume(code TokenType) bool {
 }
 
 func unit() bool {
+	// for {
+	// 	if declStruct() || declFunc() || declVar() {
+
+	// 	} else {
+	// 		break
+	// 	}
+	// }
+	// if consume(End) {
+	// 	fmt.Println("Consumed end")
+	// 	return true
+	// }
+	// return false
 	for {
-		if declStruct() || declFunc() || declVar() {
+		startId := currTokenId
+		if declStruct() || func() bool {
+			currTokenId = startId
+			return declFunc()
+		}() || func() bool {
+			currTokenId = startId
+			return declVar()
+		}() {
 
 		} else {
-			break
+			break;
 		}
 	}
 	if consume(End) {
-		fmt.Println("Consumed end")
+		fmt.Println("Consumed End")
 		return true
 	}
 	return false
 }
 func declStruct() bool {
-
-	startId := currTokenId
 
 	if consume(Struct) {
 		if consume(Id) {
@@ -914,14 +931,12 @@ func declStruct() bool {
 				} else {
 					tokenErr("expected `}` at the end of the struct")
 				}
-			} else {
-				tokenErr("expected `{` after struct keyword")
 			}
 		} else {
 			tokenErr("expected identifier")
 		}
 	}
-	currTokenId = startId
+
 	return false
 }
 func declVar() bool {
@@ -954,8 +969,6 @@ func declVar() bool {
 }
 func typeBase() bool {
 
-	startId := currTokenId
-
 	if consume(Int) || consume(Double) || consume(Char) {
 		return true
 	}
@@ -965,9 +978,7 @@ func typeBase() bool {
 		} else {
 			tokenErr("expected identifier after struct")
 		}
-	} else {
-		currTokenId = startId
-	}
+	} 
 
 	return false
 }
@@ -1049,8 +1060,6 @@ func funcArg() bool {
 }
 func stm() bool {
 
-	startId := currTokenId
-
 	if stmCompound() {
 		return true
 	}
@@ -1074,7 +1083,7 @@ func stm() bool {
 					tokenErr("expected `)` at the end of the if statement")
 				}
 			} else {
-				tokenErr("expected expression inside if")
+				tokenErr("expected condition inside if")
 			}
 		} else {
 			tokenErr("expected `(` at the beginning of the if statement")
@@ -1140,26 +1149,28 @@ func stm() bool {
 			tokenErr("expected `;` after return")
 		}
 	}
-	if func() bool {
-		expr()
+	if expr() {
 		if consume(Semicolon) {
 			return true
 		} else {
-			tokenErr("expected `;` after expression")
+			tokenErr("expected `;` at the end of the expression")
 		}
-		return false
-	}() == true {
+	}
+	if consume(Semicolon) {
 		return true
 	}
 
-	currTokenId = startId
 	return false
 }
 func stmCompound() bool {
-	startId := currTokenId
+	
 	if consume(Lacc) {
 		for {
-			if declVar() || stm() {
+			startId := currTokenId
+			if declVar() || func() bool {
+				currTokenId = startId
+				return stm()
+			}() {
 
 			} else {
 				break
@@ -1171,7 +1182,7 @@ func stmCompound() bool {
 			tokenErr("expected `}` at the end of the statement")
 		}
 	}
-	currTokenId = startId
+
 	return false
 }
 
@@ -1179,24 +1190,24 @@ func expr() bool {
 	return exprAssign()
 }
 func exprAssign() bool {
+	startId := currTokenId
 	if exprUnary() {
 		if consume(Assign) {
 			if exprAssign() {
 				return true
 			} else {
-				tokenErr("expected right operand")
+				tokenErr("missing right side of operand in assignment")
 			}
-		} else {
-			tokenErr("expected `=`")
 		}
 	}
+	currTokenId = startId
 	if exprOr() {
 		return true
 	}
 	return false
 }
 func exprOr() bool {
-	startId := currTokenId
+
 	if exprAnd() {
 		if exprOr1() {
 			return true
@@ -1207,10 +1218,10 @@ func exprOr() bool {
 	return false
 }
 func exprOr1() bool {
-	startId := currTokenId
+
 	if consume(Or) {
-		if exprAnd(){
-			if exprOr1(){
+		if exprAnd() {
+			if exprOr1() {
 
 			}
 		} else {
@@ -1221,7 +1232,7 @@ func exprOr1() bool {
 }
 func exprAnd() bool {
 	if exprEq() {
-		if exprAnd1(){
+		if exprAnd1() {
 			return true
 		}
 	}
@@ -1230,7 +1241,7 @@ func exprAnd() bool {
 func exprAnd1() bool {
 	if consume(And) {
 		if exprEq() {
-			if exprAnd1(){
+			if exprAnd1() {
 
 			}
 		} else {
@@ -1269,7 +1280,7 @@ func exprRel() bool {
 }
 func exprRel1() bool {
 	if consume(Less) || consume(LessEq) || consume(Greater) || consume(GreaterEq) {
-		if exprAdd(){
+		if exprAdd() {
 			if exprRel1() {
 				return true
 			}
@@ -1343,17 +1354,16 @@ func exprCast() bool {
 	return false
 }
 func exprUnary() bool {
-	startId := currTokenId
 
 	if consume(Sub) || consume(Not) {
 		if exprUnary() {
 			return true
 		}
 	}
+
 	if exprPostfix() {
 		return true
 	}
-
 	return false
 }
 func exprPostfix() bool {
@@ -1365,7 +1375,7 @@ func exprPostfix() bool {
 	return false
 }
 func exprPostfix1() bool {
-	startId := currTokenId
+
 	if consume(Lbracket) {
 		if expr() {
 			if consume(Rbracket) {
@@ -1391,7 +1401,7 @@ func exprPostfix1() bool {
 	return true
 }
 func exprPrimary() bool {
-	startId := currTokenId
+
 	if consume(Id) {
 		if consume(Lpar) {
 			if expr() {
@@ -1457,5 +1467,5 @@ func main() {
 	// Lexical
 	printTokens(tokens)
 	// Sintactic
-	// ansin()
+	ansin()
 }
