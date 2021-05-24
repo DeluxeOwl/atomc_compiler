@@ -1448,6 +1448,8 @@ func main() {
 	text := string(content)
 
 	tokens = getTokens(&text)
+	// Lexical
 	printTokens(tokens)
-	ansin()
+	// Sintactic
+	// ansin()
 }
