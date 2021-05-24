@@ -272,6 +272,7 @@ func getNextToken(text *string, curPos *uint, currLine *uint) Token {
 				state = 7
 				tokenStr += string(c)
 			} else {
+				*curPos-=1
 				return Token{
 					tokenType: CtInt,
 					value:     0,
@@ -878,18 +879,6 @@ func consume(code TokenType) bool {
 }
 
 func unit() bool {
-	// for {
-	// 	if declStruct() || declFunc() || declVar() {
-
-	// 	} else {
-	// 		break
-	// 	}
-	// }
-	// if consume(End) {
-	// 	fmt.Println("Consumed end")
-	// 	return true
-	// }
-	// return false
 	for {
 		startId := currTokenId
 		if declStruct() || func() bool {
@@ -1035,11 +1024,7 @@ func declFunc() bool {
 				} else {
 					tokenErr("expected `)` at the end of the argument list")
 				}
-			} else {
-				// daca nu gaseste (, nu inseamna ca e eroare
-				currTokenId = startId
-				return false
-			}
+			} 
 		} else {
 			tokenErr("expected identifier")
 		}
@@ -1212,7 +1197,7 @@ func exprOr() bool {
 		if exprOr1() {
 			return true
 		} else {
-			tokenErr("in exprOr, este eroare?")
+			// tokenErr("in exprOr, este eroare?")
 		}
 	}
 	return false
@@ -1337,8 +1322,6 @@ func exprCast() bool {
 			if consume(Rpar) {
 				if exprCast() {
 					return true
-				} else {
-					tokenErr("expected expression after casting")
 				}
 			} else {
 				tokenErr("expected `)` for casting")
@@ -1354,7 +1337,6 @@ func exprCast() bool {
 	return false
 }
 func exprUnary() bool {
-
 	if consume(Sub) || consume(Not) {
 		if exprUnary() {
 			return true
