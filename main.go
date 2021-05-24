@@ -1197,117 +1197,127 @@ func exprAssign() bool {
 }
 func exprOr() bool {
 	startId := currTokenId
-	if exprOr() {
-		if consume(Or) {
-			if exprAnd() {
-				return true
-			} else {
-				tokenErr("expected expression on the right side of `or`")
-			}
+	if exprAnd() {
+		if exprOr1() {
+			return true
 		} else {
-			tokenErr("expected `or`")
+			tokenErr("in exprOr, este eroare?")
 		}
 	}
-	if exprAnd() {
-		return true
-	}
-	currTokenId = startId
 	return false
+}
+func exprOr1() bool {
+	startId := currTokenId
+	if consume(Or) {
+		if exprAnd(){
+			if exprOr1(){
+
+			}
+		} else {
+			tokenErr("expected operand in `or` expression body")
+		}
+	}
+	return true
 }
 func exprAnd() bool {
-	startId := currTokenId
-	if exprAnd() {
-		if consume(And) {
-			if exprEq() {
-				return true
-			} else {
-				tokenErr("expected expression on the right side of `and`")
-			}
-		} else {
-			tokenErr("expected `and`")
+	if exprEq() {
+		if exprAnd1(){
+			return true
 		}
 	}
-	if exprEq() {
-		return true
-	}
-	currTokenId = startId
 	return false
+}
+func exprAnd1() bool {
+	if consume(And) {
+		if exprEq() {
+			if exprAnd1(){
+
+			}
+		} else {
+			tokenErr("expected operand in `and` expression body")
+		}
+	}
+	return true
 }
 func exprEq() bool {
-	startId := currTokenId
-	if exprEq() {
-		if consume(Equal) || consume(NotEq) {
-			if exprRel() {
-				return true
-			} else {
-				tokenErr("expected expression on the right side of equality")
-			}
-		} else {
-			tokenErr("expected `=` or `!=`")
+	if exprRel() {
+		if exprEq1() {
+			return true
 		}
 	}
-	if exprRel() {
-		return true
-	}
-	currTokenId = startId
 	return false
+}
+func exprEq1() bool {
+	if consume(Equal) || consume(NotEq) {
+		if exprRel() {
+			if exprEq1() {
+				return true
+			}
+		} else {
+			tokenErr("expected operand in `equals` expression body")
+		}
+	}
+	return true
 }
 func exprRel() bool {
-	startId := currTokenId
-	if exprRel() {
-		if consume(Less) || consume(LessEq) || consume(Greater) || consume(GreaterEq) {
-			if exprAdd() {
-				return true
-			} else {
-				tokenErr("expected expression on the right side of comparison")
-			}
-		} else {
-			tokenErr("expected comparison")
+	if exprAdd() {
+		if exprRel1() {
+			return true
 		}
 	}
-	if exprAdd() {
-		return true
-	}
-	currTokenId = startId
 	return false
+}
+func exprRel1() bool {
+	if consume(Less) || consume(LessEq) || consume(Greater) || consume(GreaterEq) {
+		if exprAdd(){
+			if exprRel1() {
+				return true
+			}
+		} else {
+			tokenErr("expected operand in `relation` expression body")
+		}
+	}
+	return true
 }
 func exprAdd() bool {
-	startId := currTokenId
-	if exprAdd() {
-		if consume(Add) || consume(Sub) {
-			if exprMul() {
-				return true
-			} else {
-				tokenErr("expected multiplication expression")
-			}
-		} else {
-			tokenErr("expected `+` or `-`")
+	if exprMul() {
+		if exprAdd1() {
+			return true
 		}
 	}
-	if exprMul() {
-		return true
-	}
-	currTokenId = startId
 	return false
 }
-func exprMul() bool {
-	startId := currTokenId
-	if exprMul() {
-		if consume(Mul) || consume(Div) {
-			if exprCast() {
+func exprAdd1() bool {
+	if consume(Add) || consume(Sub) {
+		if exprMul() {
+			if exprAdd1() {
 				return true
-			} else {
-				tokenErr("expected casting")
 			}
 		} else {
-			tokenErr("expected `*` or `/`")
+			tokenErr("expected operand in `addition / subtraction` expression body")
 		}
 	}
+	return true
+}
+func exprMul() bool {
 	if exprCast() {
-		return true
+		if exprMul1() {
+			return true
+		}
 	}
-	currTokenId = startId
 	return false
+}
+func exprMul1() bool {
+	if consume(Mul) || consume(Div) {
+		if exprCast() {
+			if exprMul1() {
+				return true
+			}
+		} else {
+			tokenErr("expected operand in `multiplication / division` expression body")
+		}
+	}
+	return true
 }
 func exprCast() bool {
 	startId := currTokenId
@@ -1338,54 +1348,50 @@ func exprUnary() bool {
 	if consume(Sub) || consume(Not) {
 		if exprUnary() {
 			return true
-		} else {
-			tokenErr("expected unary expression")
 		}
 	}
 	if exprPostfix() {
 		return true
 	}
 
-	currTokenId = startId
 	return false
 }
 func exprPostfix() bool {
-	startId := currTokenId
-
-	if exprPostfix() {
-		if consume(Lbracket) {
-			if expr() {
-				if consume(Rbracket) {
-					return true
-				} else {
-					tokenErr("expected `]` after expression")
-				}
-			} else {
-				tokenErr("expected expression after `[`")
-			}
-		} else {
-			tokenErr("expected `[` after expression")
-		}
-	}
-	if exprPostfix() {
-		if consume(Dot) {
-			if consume(Id) {
-				return true
-			} else {
-				tokenErr("expected identifier after `.`")
-			}
-		} else {
-			tokenErr("expected `.` after expression")
-		}
-	}
 	if exprPrimary() {
-		return true
+		if exprPostfix1() {
+			return true
+		}
 	}
-
-	currTokenId = startId
 	return false
 }
+func exprPostfix1() bool {
+	startId := currTokenId
+	if consume(Lbracket) {
+		if expr() {
+			if consume(Rbracket) {
+				if exprPostfix1() {
+					return true
+				}
+			} else {
+				tokenErr("expected `]` in `postfix` rule")
+			}
+		} else {
+			tokenErr("expected `expression` after `[`")
+		}
+	}
+	if consume(Dot) {
+		if consume(Id) {
+			if exprPostfix1() {
+				return true
+			}
+		} else {
+			tokenErr("expected identifier after `.`")
+		}
+	}
+	return true
+}
 func exprPrimary() bool {
+	startId := currTokenId
 	if consume(Id) {
 		if consume(Lpar) {
 			if expr() {
