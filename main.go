@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	// ansin "atomc/src/analizator/sintactic"
 )
 
 type TokenType int
@@ -870,6 +869,7 @@ func tokenErr(msg string) {
 	os.Exit(1)
 }
 
+// consuma token-ul si mergi mai departe
 func consume(code TokenType) bool {
 	if tokens[currTokenId].tokenType == code {
 		currTokenId += 1
@@ -1202,6 +1202,7 @@ func exprOr() bool {
 	}
 	return false
 }
+
 func exprOr1() bool {
 
 	if consume(Or) {
