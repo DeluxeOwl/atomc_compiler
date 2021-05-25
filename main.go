@@ -1196,9 +1196,7 @@ func exprOr() bool {
 	if exprAnd() {
 		if exprOr1() {
 			return true
-		} else {
-			// tokenErr("in exprOr, este eroare?")
-		}
+		} 
 	}
 	return false
 }
