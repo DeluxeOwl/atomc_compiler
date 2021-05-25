@@ -848,6 +848,12 @@ func printTokens(tokens []Token) {
 			continue
 		}
 
+		if token.tokenType == CtReal {
+			if nr, ok := token.value.(float64); ok {
+				fmt.Printf("%-10d %-10s\t %-10f\n", token.line, constLookup[token.tokenType], nr)
+			}
+			continue
+		}
 		fmt.Printf("%-10d %-10s\t %-10v\n", token.line, constLookup[token.tokenType], token.value)
 		// https://stackoverflow.com/questions/13094690/how-many-spaces-for-tab-character-t
 
