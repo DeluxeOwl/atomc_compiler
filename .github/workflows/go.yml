@@ -18,6 +18,30 @@ jobs:
       with:
         go-version: 1.15
 
+    - name: Run the test1
+      run: go run main.go ./tests/1.c
+
+    - name: Run the test1
+      run: go run main.go ./tests/1.c
+
+    - name: Run the test2
+      run: go run main.go ./tests/2.c
+
+    - name: Run the test3
+      run: go run main.go ./tests/3.c
+
+    - name: Run the test4
+      run: go run main.go ./tests/4.c
+
+    - name: Run the test5
+      run: go run main.go ./tests/5.c
+
+    - name: Run the test6
+      run: go run main.go ./tests/6.c
+
+    - name: Run the test7
+      run: go run main.go ./tests/7.c
+
     - name: Run the test8
       run: go run main.go ./tests/8.c
 
